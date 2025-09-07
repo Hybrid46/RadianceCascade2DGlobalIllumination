@@ -49,20 +49,42 @@ public sealed class GIContext : IDisposable
         MergePass();
     }
 
-    // ---------------------------------------------------------
-    // Rendering the scene + GI
-    // ---------------------------------------------------------
-    public void Draw()
+    public void DrawGI()
     {
         Raylib.BeginDrawing();
-        Raylib.ClearBackground(Color.Gray);
+        Raylib.ClearBackground(Color.Black);
 
-        // 1) Draw main scene (your sprites, etc.)
-        // (Insert your own drawing code here)
-
-        // 2) Draw the GI on top using additive blending
         Raylib.BeginBlendMode(BlendMode.Additive);
         Raylib.DrawTextureRec(FinalGI.Texture, new Rectangle(0, 0, FinalGI.Texture.Width, -FinalGI.Texture.Height), Vector2.Zero, Color.White);
+        Raylib.EndBlendMode();
+
+        Raylib.EndDrawing();
+    }
+
+    public void DrawSDF()
+    {
+        Raylib.BeginDrawing();
+        Raylib.ClearBackground(Color.Black);
+
+        Raylib.BeginBlendMode(BlendMode.Additive);
+        Raylib.DrawTextureRec(SDFTex.Texture, new Rectangle(0, 0, SDFTex.Texture.Width, -SDFTex.Texture.Height), Vector2.Zero, Color.White);
+        Raylib.EndBlendMode();
+
+        Raylib.EndDrawing();
+    }
+
+    public void DrawRayMarch(int index)
+    {
+        foreach (Cascade cascade in Cascades)
+        {
+            RaymarchPass(cascade);
+        }
+
+        Raylib.BeginDrawing();
+        Raylib.ClearBackground(Color.Black);
+
+        Raylib.BeginBlendMode(BlendMode.Additive);
+        Raylib.DrawTextureRec(Cascades[index].Texture.Texture, new Rectangle(0, 0, Cascades[index].Texture.Texture.Width, -Cascades[index].Texture.Texture.Height), Vector2.Zero, Color.White);
         Raylib.EndBlendMode();
 
         Raylib.EndDrawing();
@@ -118,13 +140,6 @@ public sealed class GIContext : IDisposable
             int location = Raylib.GetShaderLocation(MergeShader, name);
             Raylib.SetShaderValueTexture(MergeShader, location, Cascades[i].Texture.Texture);
         }
-
-        // Pass overall resolution
-        Vector2 res = new Vector2(FinalGI.Texture.Width, FinalGI.Texture.Height);
-        Raylib.SetShaderValue(MergeShader,
-            Raylib.GetShaderLocation(MergeShader, "u_resolution"),
-            res,
-            ShaderUniformDataType.Vec2);
 
         // Draw a full‑screen quad
         Raylib.DrawTextureRec(SDFTex.Texture, new Rectangle(0, 0, SDFTex.Texture.Width, -SDFTex.Texture.Height), Vector2.Zero, Color.White);

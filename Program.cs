@@ -31,9 +31,17 @@ class Program
             // 1) Update GI (raymarch + merge)
             gi.Update();
 
+            // Optional: visualize the SDF
+            //gi.DrawSDF();
+
+            // Optional: visualize cascade
+            //gi.DrawRayMarch(0);
+            //gi.DrawRayMarch(1);
+            //gi.DrawRayMarch(2);
+
             // 2) Render
             Raylib.BeginDrawing();
-            Raylib.ClearBackground(Color.DarkGray);
+            Raylib.ClearBackground(Color.Black);
 
             // ---- Main scene (demo sprites) ----
             DrawDemoScene(walls);
