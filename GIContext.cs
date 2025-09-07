@@ -107,6 +107,10 @@ public sealed class GIContext : IDisposable
 
         Raylib.BeginShaderMode(MergeShader);
 
+        int count = Cascades.Count;
+        int loc = Raylib.GetShaderLocation(MergeShader, "u_cascadeCount");
+        Raylib.SetShaderValue(MergeShader, loc, count, ShaderUniformDataType.Int);
+
         // Bind all cascade textures as separate sampler2D uniforms
         for (int i = 0; i < Cascades.Count; i++)
         {
@@ -132,6 +136,7 @@ public sealed class GIContext : IDisposable
     public void Dispose()
     {
         Raylib.UnloadTexture(SDFTex.Texture);
+        Raylib.UnloadRenderTexture(SDFTex);
         Raylib.UnloadRenderTexture(FinalGI);
         Raylib.UnloadShader(RaymarchShader);
         Raylib.UnloadShader(MergeShader);
