@@ -29,6 +29,9 @@ class Program
 
     static void Main()
     {
+        Raylib.InitWindow(screenWidth, screenHeight, "RC2DGI in Raylib");
+        Raylib.SetTargetFPS(60);
+
         // 1. Load shaders
         screenUV = Raylib.LoadShader(null, "shaders/ScreenUV.fs");
         jumpFlood = Raylib.LoadShader(null, "shaders/JumpFlood.fs");
@@ -53,8 +56,6 @@ class Program
         // 4. Initialise all RTs to black
         ClearAllRTs();
 
-        Raylib.InitWindow(screenWidth, screenHeight, "RC2DGI in Raylib");
-        Raylib.SetTargetFPS(60);
 
         // Demo geometry (simple walls + moving sprite)
         List<Rectangle> walls = new List<Rectangle>
@@ -77,12 +78,12 @@ class Program
             Raylib.BeginDrawing();
             Raylib.ClearBackground(Color.Black);
 
-            // a) show original scene
-            Raylib.DrawTextureRec(sceneRT.Texture,
-                new Rectangle(0, 0, sceneRT.Texture.Width, -sceneRT.Texture.Height),
-                Vector2.Zero, Color.White);
+            //// a) show original scene
+            //Raylib.DrawTextureRec(sceneRT.Texture,
+            //    new Rectangle(0, 0, sceneRT.Texture.Width, -sceneRT.Texture.Height),
+            //    Vector2.Zero, Color.White);
 
-            // b) add GI (blitted in pipeline, now on screen)
+            //// b) add GI (blitted in pipeline, now on screen)
             Raylib.DrawTextureRec(sceneRT.Texture,
                 new Rectangle(0, 0, sceneRT.Texture.Width, -sceneRT.Texture.Height),
                 Vector2.Zero, Color.White);

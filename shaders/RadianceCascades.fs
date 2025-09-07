@@ -183,96 +183,89 @@ uniform sampler2D _ColorTex;
 uniform sampler2D _DistanceTex;
 
 uniform vec2 _CascadeResolution;
-uniform int  _CascadeLevel;
-uniform int  _CascadeCount;
+uniform int _CascadeLevel;
+uniform int _CascadeCount;
 uniform vec2 _Aspect;
-uniform vec2 _RayRange;
+uniform float _RayRange;
 
 uniform vec3 _SkyColor;
 uniform vec3 _SunColor;
 uniform float _SunAngle;
 uniform float _SkyRadiance;
 
-// --- helpers ----------------------------------------------------
+const float PI = 3.14159265359;
+const float TAU = 6.28318530718;
 
-float sampleSky(float a0, float a1)
+vec3 sampleSky(float a0, float a1)
 {
-    const float3 skyCol = _SkyColor;
-    const float3 sunCol = _SunColor;
-    const float sunA   = _SunAngle;
-    const float ss     = 8.0;
-    const float invss  = 1.0/ss;
-    float3 si = skyCol * (a1-a0-0.5*(cos(a1)-cos(a0)));
-    si += sunCol * (atan(ss*(sunA-a0))-atan(ss*(sunA-a1)))*invss;
-    return clamp(si, 0.0, 1.0)*0.16;
+    const float ss = 8.0;
+    const float invss = 1.0/ss;
+    vec3 si = _SkyColor * (a1-a0-0.5*(cos(a1)-cos(a0)));
+    si += _SunColor * (atan(ss*(_SunAngle-a0))-atan(ss*(_SunAngle-a1)))*invss;
+    return si * 0.16;
 }
 
-// --- ray‑march ----------------------------------------------------
-
-vec4 march(float2 origin, float2 dir, float2 range)
+vec4 march(vec2 origin, vec2 dir, vec2 range)
 {
     float t = range.x;
     vec4 hit = vec4(0.0);
-    for (int i = 0; i < 32; ++i)
+    
+    for (int i = 0; i < 32; i++)
     {
-        float2 pos = origin + t*dir*_Aspect.yx;
-        if (t > range.y ||
-            pos.x < 0.0 || pos.y < 0.0 || pos.x > 1.0 || pos.y > 1.0)
+        vec2 pos = origin + t * dir * _Aspect.yx;
+        
+        if (t > range.y || any(lessThan(pos, vec2(0.0))) || any(greaterThan(pos, vec2(1.0))))
             break;
 
         float dist = texture(_DistanceTex, pos).r;
+        
         if (dist < 0.001)
         {
             hit = vec4(texture(_ColorTex, pos).rgb, 0.0);
             break;
         }
+        
         t += dist;
     }
     return hit;
 }
 
-// --- main ---------------------------------------------------------
-
 void main()
 {
-    vec2 pixel = floor(fragTexCoord * _CascadeResolution);
-    float2 blockDim = _CascadeResolution / pow(2.0, float(_CascadeLevel));
-    float2 blockIdx = floor(pixel / blockDim);
-    float block = blockIdx.x + blockIdx.y * pow(2.0, float(_CascadeLevel));
-
-    float2 rayOrigin = (mod(pixel, blockDim) + 0.5) * pow(2.0, float(_CascadeLevel));
-    float2 rayRange = vec2(0.0, _RayRange);
-
-    vec4 res = vec4(0.0);
-
-    int samples = 4; // four rays per block
-    for (int i = 0; i < samples; ++i)
+    vec2 pixelCoords = floor(fragTexCoord * _CascadeResolution);
+    float blockSqrtCount = pow(2.0, float(_CascadeLevel));
+    vec2 blockDim = _CascadeResolution / blockSqrtCount;
+    vec2 blockIdx = floor(pixelCoords / blockDim);
+    float blockIndex = blockIdx.x + blockIdx.y * blockSqrtCount;
+    
+    vec2 coordsInBlock = mod(pixelCoords, blockDim);
+    vec2 rayOrigin = (coordsInBlock + 0.5) / blockDim;
+    
+    float totalRays = blockSqrtCount * blockSqrtCount * 4.0;
+    float angleStep = TAU / totalRays;
+    
+    vec4 result = vec4(0.0);
+    
+    for (int i = 0; i < 4; i++)
     {
-        float a = (block + 0.5 + float(i)/float(samples)) *
-                  (6.28318530718 / float(pow(2.0, 2.0*float(_CascadeLevel) + 2.0));
-
-        float2 dir = vec2(cos(a), sin(a));
-        vec4 radiance = march(rayOrigin/_CascadeResolution, dir, rayRange);
-
-        if (radiance.a > 0.0)
+        float angleIndex = blockIndex * 4.0 + float(i);
+        float angle = (angleIndex + 0.5) * angleStep;
+        vec2 rayDir = vec2(cos(angle), sin(angle));
+        
+        vec2 rayRange = vec2(0.0, _RayRange);
+        vec4 radiance = march(rayOrigin, rayDir, rayRange);
+        
+        if (radiance.a == 0.0) // Hit something
         {
-            if (_CascadeLevel != _CascadeCount-1)
+            if (_CascadeLevel == _CascadeCount - 1)
             {
-                // merge with upper cascade
-                float2 pos = mod(blockIdx*0.5, blockDim*0.5) + 0.25;
-                vec4 up   = texture(_ColorTex, (pos + blockIdx*blockDim*0.5) / _CascadeResolution);
-                radiance.rgb += up.rgb * radiance.a;
-                radiance.a   *= up.a;
-            }
-            else
-            {
-                // sky contribution
-                vec3 sky = sampleSky(a, a+6.28318530718/float(samples));
-                radiance.rgb += sky * _SkyRadiance;
+                vec3 sky = sampleSky(angle, angle + angleStep) * _SkyRadiance;
+                radiance.rgb += (sky / angleStep) * 2.0;
             }
         }
-        res += radiance * 0.25;
+        
+        result += radiance * 0.25;
     }
-
-    fragColor = res;
+    
+    fragColor = result;
 }
