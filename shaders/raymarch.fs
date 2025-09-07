@@ -11,7 +11,7 @@ uniform int    u_rayCount;     // rays per probe
 vec2 randVec2(float seed)
 {
     float angle = 2.0 * 3.14159265 * fract(sin(seed) * 43758.5453);
-    return vec2(cos(angle), sin(angle));
+    return normalize(vec2(cos(angle), sin(angle)));
 }
 
 // Ray‑march one ray from the probe location
