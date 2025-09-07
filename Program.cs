@@ -31,6 +31,11 @@ class Program
             // 1) Update GI (raymarch + merge)
             gi.Update();
 
+
+            //Debug--------
+            //Raylib.BeginDrawing();
+            //Raylib.ClearBackground(Color.Black);
+            //Raylib.BeginBlendMode(BlendMode.Additive);
             // Optional: visualize the SDF
             //gi.DrawSDF();
 
@@ -38,6 +43,8 @@ class Program
             //gi.DrawRayMarch(0);
             //gi.DrawRayMarch(1);
             //gi.DrawRayMarch(2);
+            //Raylib.EndDrawing();
+            //Debug--------
 
             // 2) Render
             Raylib.BeginDrawing();
