@@ -187,6 +187,9 @@ class Program
         Raylib.BeginTextureMode(distRT);
         Raylib.ClearBackground(Color.Black);
         Raylib.BeginShaderMode(distanceField);
+
+        Raylib.SetShaderValue(distanceField, Raylib.GetShaderLocation(distanceField, "_Aspect"), new Vector2(screenWidth, screenHeight) / System.Math.Min(screenWidth, screenHeight), ShaderUniformDataType.Vec2);
+
         Raylib.DrawTextureRec(src.Texture,
             new Rectangle(0, 0, src.Texture.Width, -src.Texture.Height),
             Vector2.Zero, Color.White);
