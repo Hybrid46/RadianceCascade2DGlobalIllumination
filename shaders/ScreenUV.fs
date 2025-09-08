@@ -6,7 +6,7 @@ uniform sampler2D _MainTex;
 
 void main()
 {
-    float alpha = texture(_MainTex, fragTexCoord).a;
+    float alpha = any(greaterThan(texture(_MainTex, fragTexCoord).rgb, vec3(0.0))) ? 1.0 : 0.0;
     if (alpha > 0.5)
         fragColor = vec4(fragTexCoord, 0.0, 1.0);
     else

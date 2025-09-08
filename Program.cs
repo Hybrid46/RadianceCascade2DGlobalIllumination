@@ -56,7 +56,6 @@ class Program
         // 4. Initialise all RTs to black
         ClearAllRTs();
 
-
         // Demo geometry (simple walls + moving sprite)
         List<Rectangle> walls = new List<Rectangle>
         {
@@ -75,18 +74,26 @@ class Program
             DoRC2DGI();
 
             // 3. Display final
+            // 3. Display final
             Raylib.BeginDrawing();
             Raylib.ClearBackground(Color.Black);
 
-            //// a) show original scene
-            //Raylib.DrawTextureRec(sceneRT.Texture,
-            //    new Rectangle(0, 0, sceneRT.Texture.Width, -sceneRT.Texture.Height),
-            //    Vector2.Zero, Color.White);
-
-            //// b) add GI (blitted in pipeline, now on screen)
+            // Draw main scene
             Raylib.DrawTextureRec(sceneRT.Texture,
                 new Rectangle(0, 0, sceneRT.Texture.Width, -sceneRT.Texture.Height),
                 Vector2.Zero, Color.White);
+
+            // Draw debug textures
+            int debugSize = 100;
+            int padding = 10;
+            int startX = screenWidth - debugSize - padding;
+
+            DrawDebugTexture(sceneRT, new Vector2(startX, padding), debugSize, "Scene");
+            DrawDebugTexture(jumpRT1, new Vector2(startX, padding * 2 + debugSize), debugSize, "Jump1");
+            DrawDebugTexture(jumpRT2, new Vector2(startX, padding * 3 + debugSize * 2), debugSize, "Jump2");
+            DrawDebugTexture(distRT, new Vector2(startX, padding * 4 + debugSize * 3), debugSize, "Distance");
+            DrawDebugTexture(giRT1, new Vector2(startX, padding * 5 + debugSize * 4), debugSize, "GI1");
+            DrawDebugTexture(giRT2, new Vector2(startX, padding * 6 + debugSize * 5), debugSize, "GI2");
 
             Raylib.EndDrawing();
         }
@@ -230,6 +237,21 @@ class Program
         //    Vector2.Zero, Color.White);
         //Raylib.EndTextureMode();
         //Raylib.EndShaderMode();
+    }
+
+    static void DrawDebugTexture(RenderTexture2D texture, Vector2 position, int size, string label)
+    {
+        // Draw the texture
+        Raylib.DrawTexturePro(texture.Texture,
+            new Rectangle(0, 0, texture.Texture.Width, -texture.Texture.Height),
+            new Rectangle(position.X, position.Y, size, size),
+            Vector2.Zero, 0f, Color.White);
+
+        // Draw a border
+        Raylib.DrawRectangleLines((int)position.X, (int)position.Y, size, size, Color.Red);
+
+        // Draw label
+        Raylib.DrawText(label, (int)position.X, (int)position.Y - 20, 20, Color.White);
     }
 
     static void ClearAllRTs()
