@@ -37,7 +37,7 @@ class Program
         jumpFlood_shader = Raylib.LoadShader(null, "shaders/JumpFlood.fs");
         distanceField_shader = Raylib.LoadShader(null, "shaders/DistanceField.fs");
         GI_shader = Raylib.LoadShader(null, "shaders/RadianceCascades.fs");
-        GIBlitter_shader = Raylib.LoadShader(null,"shaders/blitter.glsl");
+        GIBlitter_shader = Raylib.LoadShader(null, "shaders/blitter.glsl");
 
         // Setup GI config
         cascadeCount = 6;
@@ -77,7 +77,7 @@ class Program
 
         jumpRT2 = Raylib.LoadRenderTexture(screenWidth, screenHeight);
         jumpRT2.Texture.Format = PixelFormat.UncompressedR16G16B16;
-                
+
         giRT1 = Raylib.LoadRenderTexture(cascadeResolution.x, cascadeResolution.y);
         giRT1.Texture.Format = PixelFormat.UncompressedR16G16B16A16;
         giRT2 = Raylib.LoadRenderTexture(cascadeResolution.x, cascadeResolution.y);
@@ -171,8 +171,11 @@ class Program
         bool gi1IsFinal = false;
         int cascadeRes = 128;
         Vector2 aspect = new Vector2(screenWidth, screenHeight) / Math.Max(screenWidth, screenHeight);
+        Vector2 screen = new Vector2(screenWidth, screenHeight);
 
         // ---- 1. ScreenUV ----
+        //Copying the color texture to another one using Screen UV shader to start the JumpFlood Algorithm
+        //cmd.Blit(colorRT, jumpFloodRT1, screenUVMat); -> Unity original
         Raylib.BeginTextureMode(jumpRT1);
         Raylib.ClearBackground(Color.Black);
         Raylib.BeginShaderMode(screenUV_shader);
@@ -182,16 +185,41 @@ class Program
         Raylib.EndShaderMode();
         Raylib.EndTextureMode();
 
-        bool jumpIsFinal = true;
+        //Start JumpFlood Algorithm
+        jumpFlood1IsFinal = true;
+        int max = (int)Math.Max(screen.X, screen.Y);
+        //int steps = Mathf.CeilToInt(Mathf.Log(max)); -> Unity original
+        int steps = (int)Math.Ceiling(Math.Log(max));
+        float stepSize = 1.0f;
 
         // ---- 2. Jump Flood iterations ----
-        for (int i = 0; i < maxIterations; ++i)
+        /*
+            for (var n = 0; n < steps; n++)
+            {
+                stepSize *= 0.5f;
+                cmd.SetGlobalFloat("_StepSize", stepSize);
+                //you might find setting this value as global is unecessary but for some reason when using for loops you can't set the value directly to the material with Material.SetFloat
+                //The value don't get passed correctly. Why, I have no idea
+
+                if (jumpFlood1IsFinal)
+                {
+                    cmd.Blit(jumpFloodRT1, jumpFloodRT2, jumpFloodMat);
+                }
+                else
+                {
+                    cmd.Blit(jumpFloodRT2, jumpFloodRT1, jumpFloodMat);
+                }
+
+                jumpFlood1IsFinal = !jumpFlood1IsFinal;
+            }
+         */
+        for (int i = 0; i < steps; ++i)
         {
-            float step = 1f / (float)Math.Pow(2f, i + 1);
-            Raylib.SetShaderValue(jumpFlood_shader, Raylib.GetShaderLocation(jumpFlood_shader, "_StepSize"), step, ShaderUniformDataType.Float);
+            stepSize *= 0.5f;
+            Raylib.SetShaderValue(jumpFlood_shader, Raylib.GetShaderLocation(jumpFlood_shader, "_StepSize"), stepSize, ShaderUniformDataType.Float);
             Raylib.SetShaderValue(jumpFlood_shader, Raylib.GetShaderLocation(jumpFlood_shader, "_Aspect"), aspect, ShaderUniformDataType.Vec2);
 
-            if (jumpIsFinal)
+            if (jumpFlood1IsFinal)
             {
                 // src jumpRT1 → dst jumpRT2
                 Raylib.BeginTextureMode(jumpRT2);
@@ -214,11 +242,23 @@ class Program
                 Raylib.EndTextureMode();
             }
 
-            jumpIsFinal = !jumpIsFinal;
+            jumpFlood1IsFinal = !jumpFlood1IsFinal;
         }
 
+        /*
+            //We check which texture holds the final result and we apply the DistanceField shader to it
+            if (jumpFlood1IsFinal)
+            {
+                cmd.Blit(jumpFloodRT1, distanceRT, distanceFieldMat);
+            }
+            else
+            {
+                cmd.Blit(jumpFloodRT2, distanceRT, distanceFieldMat);
+            }
+         */
+
         // ---- 3. Distance field ----
-        RenderTexture2D src = jumpIsFinal ? jumpRT1 : jumpRT2;
+        RenderTexture2D src = jumpFlood1IsFinal ? jumpRT1 : jumpRT2;
         Raylib.BeginTextureMode(distRT);
         Raylib.ClearBackground(Color.Black);
         Raylib.BeginShaderMode(distanceField_shader);
@@ -231,10 +271,117 @@ class Program
         Raylib.EndShaderMode();
         Raylib.EndTextureMode();
 
+        /*
+            gi1IsFinal = false;//Same as "jumpFlood1IsFinal"
+            for (int i = cascadeCount - 1; i >= 0; i--)
+            {
+                cmd.SetGlobalInt("_CascadeLevel", i);//Again setting it as global cause I can't pass it directly to the material from a for loop
+                                                        //the shader handles the computation of the cascades and the merging at the same time
+                if (gi1IsFinal)
+                {
+                    cmd.Blit(giRT1, giRT2, giMat);
+                }
+                else
+                {
+                    cmd.Blit(giRT2, giRT1, giMat);
+                }
+
+                gi1IsFinal = !gi1IsFinal;
+            }                
+         */
+
         // ---- 4. Radiance cascades ----
-        Raylib.BeginTextureMode(giRT1);
-        Raylib.ClearBackground(Color.Black);
-        Raylib.BeginShaderMode(GI_shader);
+        gi1IsFinal = false;
+
+        for (int i = cascadeCount - 1; i >= 0; i--)
+        {
+            RenderTexture2D srcGI = gi1IsFinal ? giRT1 : giRT2;
+            RenderTexture2D dstGI = gi1IsFinal ? giRT2 : giRT1;
+
+            Raylib.BeginTextureMode(dstGI);
+            Raylib.ClearBackground(Color.Black);
+            Raylib.BeginShaderMode(GI_shader);
+
+            SetGIShaderValues(aspect, i);
+
+            Raylib.DrawTextureRec(srcGI.Texture,
+                new Rectangle(0, 0, srcGI.Texture.Width, -srcGI.Texture.Height),
+                Vector2.Zero, Color.White);
+            Raylib.EndShaderMode();
+            Raylib.EndTextureMode();
+        }
+
+        //----5.Blit GI onto scene----
+        /*
+         cmd.Blit(renderingData.cameraData.renderer.cameraColorTargetHandle, colorRT);
+
+                if (gi1IsFinal)
+                {
+                    blitterMat.SetTexture("_GITex", giRT1);
+                }
+                else
+                {
+                    blitterMat.SetTexture("_GITex", giRT2);
+                }
+
+                cmd.Blit(colorRT, renderingData.cameraData.renderer.cameraColorTargetHandle, blitterMat);//Finaly blending the final result to the camera texture
+         */
+
+        //TODO -> Bilinear filtering in shader!
+
+        /*
+         //Possible fix for self copy colorRT:
+
+        RenderTexture2D tempRT = Raylib.LoadRenderTexture(screenWidth, screenHeight);
+
+Raylib.BeginTextureMode(tempRT);
+Raylib.BeginShaderMode(GIBlitter_shader);
+Raylib.SetShaderValueTexture(GIBlitter_shader, Raylib.GetShaderLocation(GIBlitter_shader, "_GITex"), finalGI.Texture);
+Raylib.DrawTextureRec(colorRT.Texture, 
+    new Rectangle(0, 0, colorRT.Texture.Width, colorRT.Texture.Height),
+    Vector2.Zero, Color.White);
+Raylib.EndShaderMode();
+Raylib.EndTextureMode();
+
+// Copy back to colorRT
+Raylib.BeginTextureMode(colorRT);
+Raylib.DrawTextureRec(tempRT.Texture, 
+    new Rectangle(0, 0, tempRT.Texture.Width, tempRT.Texture.Height),
+    Vector2.Zero, Color.White);
+Raylib.EndTextureMode();
+
+Raylib.UnloadRenderTexture(tempRT);
+         */
+
+        RenderTexture2D finalGI = gi1IsFinal ? giRT1 : giRT2;
+
+        Raylib.BeginTextureMode(colorRT);
+        Raylib.BeginShaderMode(GIBlitter_shader);
+
+        Raylib.SetShaderValueTexture(GIBlitter_shader, Raylib.GetShaderLocation(GIBlitter_shader, "_GITex"), finalGI.Texture);
+
+        Raylib.DrawTextureRec(colorRT.Texture,
+            new Rectangle(0, 0, colorRT.Texture.Width, -colorRT.Texture.Height),
+            Vector2.Zero, Color.White);
+
+        Raylib.EndShaderMode();
+        Raylib.EndTextureMode();
+    }
+
+    private static void SetGIShaderValues(Vector2 aspect, int cascadeLevel)
+    {
+        /*
+          //Passing values to the GI Shader
+        giMat.SetTexture("_ColorTex", colorRT);
+        giMat.SetTexture("_DistanceTex", distanceRT);
+        giMat.SetFloat("_RayRange", (screen / Mathf.Min(screen.x, screen.y)).magnitude * rayRange);
+        giMat.SetInt("_CascadeCount", cascadeCount);
+        giMat.SetFloat("_SkyRadiance", volume.skyRadiance.value ? 1 : 0);
+        giMat.SetColor("_SkyColor", volume.skyColor.value);
+        giMat.SetColor("_SunColor", volume.sunColor.value);
+        giMat.SetFloat("_SunAngle", volume.sunAngle.value);
+        giMat.SetVector("_CascadeResolution", (Vector2)cascadeResolution);
+ */
 
         // bind textures
         Raylib.SetShaderValueTexture(GI_shader, Raylib.GetShaderLocation(GI_shader, "_ColorTex"), colorRT.Texture);
@@ -244,51 +391,18 @@ class Program
         Raylib.SetShaderValue(GI_shader, Raylib.GetShaderLocation(GI_shader, "_CascadeResolutionX"), cascadeResolution.x, ShaderUniformDataType.Float);
         Raylib.SetShaderValue(GI_shader, Raylib.GetShaderLocation(GI_shader, "_CascadeResolutionY"), cascadeResolution.y, ShaderUniformDataType.Float);
 
-        Raylib.SetShaderValue(GI_shader, Raylib.GetShaderLocation(GI_shader, "_CascadeLevel"), 0, ShaderUniformDataType.Int);
+        Raylib.SetShaderValue(GI_shader, Raylib.GetShaderLocation(GI_shader, "_CascadeLevel"), cascadeLevel, ShaderUniformDataType.Int); //TODO -> What do we use it for?
         Raylib.SetShaderValue(GI_shader, Raylib.GetShaderLocation(GI_shader, "_CascadeCount"), cascadeCount, ShaderUniformDataType.Int);
         Raylib.SetShaderValue(GI_shader, Raylib.GetShaderLocation(GI_shader, "_Aspect"), aspect, ShaderUniformDataType.Vec2);
 
-        Raylib.SetShaderValue(GI_shader, Raylib.GetShaderLocation(GI_shader, "_RayRange"), 5.0f, ShaderUniformDataType.Float);
+        Raylib.SetShaderValue(GI_shader, Raylib.GetShaderLocation(GI_shader, "_RayRange"), rayRange, ShaderUniformDataType.Float);
 
         // sky params
         Raylib.SetShaderValue(GI_shader, Raylib.GetShaderLocation(GI_shader, "_SkyRadiance"), 1.0f, ShaderUniformDataType.Float);
         Raylib.SetShaderValue(GI_shader, Raylib.GetShaderLocation(GI_shader, "_SkyColor"), new Vector3(0.5f, 0.6f, 0.8f), ShaderUniformDataType.Vec3);
         Raylib.SetShaderValue(GI_shader, Raylib.GetShaderLocation(GI_shader, "_SunColor"), new Vector3(1.0f, 0.9f, 0.6f), ShaderUniformDataType.Vec3);
         Raylib.SetShaderValue(GI_shader, Raylib.GetShaderLocation(GI_shader, "_SunAngle"), 0.3f, ShaderUniformDataType.Float);
-
-        Raylib.DrawTextureRec(distRT.Texture,
-            new Rectangle(0, 0, distRT.Texture.Width, -distRT.Texture.Height),
-            Vector2.Zero, Color.White);
-        Raylib.EndShaderMode();
-        Raylib.EndTextureMode();
-
-        //----5.Blit GI onto scene----
-        //TODO -> Bilinear filtering in shader!
-        Raylib.BeginShaderMode(GIBlitter_shader);
-        Raylib.SetShaderValueTexture(GIBlitter_shader,
-            Raylib.GetShaderLocation(GIBlitter_shader, "_GITex"), giRT1.Texture);
-        Raylib.BeginTextureMode(colorRT);
-        Raylib.DrawTextureRec(colorRT.Texture,
-            new Rectangle(0, 0, colorRT.Texture.Width, -colorRT.Texture.Height),
-            Vector2.Zero, Color.White);
-        Raylib.EndTextureMode();
-        Raylib.EndShaderMode();
     }
-
-    //TODO implement shader variable descriptors to set shader variables on blit
-    //public static void BlitColor(RenderTexture2D src, RenderTexture2D dst, Shader shader, bool clearDst = false)
-    //{
-    //    Raylib.BeginTextureMode(dst);
-    //    if (clearDst) Raylib.ClearBackground(Color.Black);
-    //    Raylib.BeginShaderMode(shader);
-
-    //    Raylib.DrawTextureRec(src.Texture,
-    //        new Rectangle(0, 0, src.Texture.Width, -src.Texture.Height),
-    //        Vector2.Zero, Color.White);
-
-    //    Raylib.EndShaderMode();
-    //    Raylib.EndTextureMode();
-    //}
 
     static void DrawDebugTexture(RenderTexture2D texture, Vector2 position, int size, string label)
     {
