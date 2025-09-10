@@ -43,7 +43,7 @@ class Program
         // Setup GI config
         cascadeCount = 6;
         renderScale = 1.0f;
-        rayRange = 2.0f;
+        rayRange = 1.0f;
 
         // Unity Original
         //int cascadeWidth = Mathf.CeilToInt((screenWidth * renderScale) / Math.Pow(2, cascadeCount)) * (int)Math.Pow(2, cascadeCount);
