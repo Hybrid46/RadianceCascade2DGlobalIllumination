@@ -43,7 +43,7 @@ class Program
         // Setup GI config
         cascadeCount = 6;
         renderScale = 1.0f;
-        rayRange = 1.0f;
+        rayRange = 2.0f;
 
         // Unity Original
         //int cascadeWidth = Mathf.CeilToInt((screenWidth * renderScale) / Math.Pow(2, cascadeCount)) * (int)Math.Pow(2, cascadeCount);
@@ -100,6 +100,8 @@ class Program
 
         while (!Raylib.WindowShouldClose())
         {
+            ClearAllRTs();
+
             // 1. Scene render
             RenderScene(walls);
 
@@ -194,7 +196,9 @@ class Program
         jumpFlood1IsFinal = true;
         int max = (int)Math.Max(screen.X, screen.Y);
         //int steps = Mathf.CeilToInt(Mathf.Log(max)); -> Unity original
-        int steps = (int)Math.Ceiling(Math.Log(max));
+        //int steps = (int)Math.Ceiling(Math.Log(max)); -> my first attempt
+        int steps = (int)Math.Ceiling(Math.Log(max, 2.0));
+
         float stepSize = 1.0f;
 
         // ---- 2. Jump Flood iterations ----
@@ -263,15 +267,13 @@ class Program
          */
 
         // ---- 3. Distance field ----
-        RenderTexture2D src = jumpFlood1IsFinal ? jumpRT1 : jumpRT2;
+        RenderTexture2D finalJumpFloodRT = jumpFlood1IsFinal ? jumpRT1 : jumpRT2;
         Raylib.BeginTextureMode(distRT);
         Raylib.ClearBackground(Color.Black);
         Raylib.BeginShaderMode(distanceField_shader);
 
-        Raylib.SetShaderValue(distanceField_shader, Raylib.GetShaderLocation(distanceField_shader, "_Aspect"), aspect, ShaderUniformDataType.Vec2);
-
-        Raylib.DrawTextureRec(src.Texture,
-            new Rectangle(0, 0, src.Texture.Width, -src.Texture.Height),
+        Raylib.DrawTextureRec(finalJumpFloodRT.Texture,
+            new Rectangle(0, 0, finalJumpFloodRT.Texture.Width, -finalJumpFloodRT.Texture.Height),
             Vector2.Zero, Color.White);
         Raylib.EndShaderMode();
         Raylib.EndTextureMode();
@@ -314,6 +316,8 @@ class Program
                 Vector2.Zero, Color.White);
             Raylib.EndShaderMode();
             Raylib.EndTextureMode();
+
+            gi1IsFinal = !gi1IsFinal;
         }
 
         //----5.Blit GI onto scene----
@@ -340,7 +344,7 @@ class Program
         Raylib.BeginShaderMode(GIBlitter_shader);
         Raylib.SetShaderValueTexture(GIBlitter_shader, Raylib.GetShaderLocation(GIBlitter_shader, "_GITex"), finalGI.Texture);
         Raylib.DrawTextureRec(colorRT.Texture,
-            new Rectangle(0, 0, colorRT.Texture.Width, colorRT.Texture.Height),
+            new Rectangle(0, 0, colorRT.Texture.Width, -colorRT.Texture.Height),
             Vector2.Zero, Color.White);
         Raylib.EndShaderMode();
         Raylib.EndTextureMode();
@@ -366,17 +370,18 @@ class Program
         giMat.SetColor("_SunColor", volume.sunColor.value);
         giMat.SetFloat("_SunAngle", volume.sunAngle.value);
         giMat.SetVector("_CascadeResolution", (Vector2)cascadeResolution);
- */
+        */
 
         // bind textures
         Raylib.SetShaderValueTexture(GI_shader, Raylib.GetShaderLocation(GI_shader, "_ColorTex"), colorRT.Texture);
         Raylib.SetShaderValueTexture(GI_shader, Raylib.GetShaderLocation(GI_shader, "_DistanceTex"), distRT.Texture);
 
         // uniform params
-        Raylib.SetShaderValue(GI_shader, Raylib.GetShaderLocation(GI_shader, "_CascadeResolutionX"), cascadeResolution.x, ShaderUniformDataType.Float);
-        Raylib.SetShaderValue(GI_shader, Raylib.GetShaderLocation(GI_shader, "_CascadeResolutionY"), cascadeResolution.y, ShaderUniformDataType.Float);
+        Vector2 cascadeResVec = new Vector2(cascadeResolution.x, cascadeResolution.y);
+        int locCascadeRes = Raylib.GetShaderLocation(GI_shader, "_CascadeResolution");
+        Raylib.SetShaderValue(GI_shader, locCascadeRes, cascadeResVec, ShaderUniformDataType.Vec2);
 
-        Raylib.SetShaderValue(GI_shader, Raylib.GetShaderLocation(GI_shader, "_CascadeLevel"), cascadeLevel, ShaderUniformDataType.Int); //TODO -> What do we use it for?
+        Raylib.SetShaderValue(GI_shader, Raylib.GetShaderLocation(GI_shader, "_CascadeLevel"), cascadeLevel, ShaderUniformDataType.Int);
         Raylib.SetShaderValue(GI_shader, Raylib.GetShaderLocation(GI_shader, "_CascadeCount"), cascadeCount, ShaderUniformDataType.Int);
         Raylib.SetShaderValue(GI_shader, Raylib.GetShaderLocation(GI_shader, "_Aspect"), aspect, ShaderUniformDataType.Vec2);
 
