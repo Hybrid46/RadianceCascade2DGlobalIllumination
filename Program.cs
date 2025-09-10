@@ -5,8 +5,8 @@ using System.Numerics;
 class Program
 {
     // ---------- Config ----------
-    const int screenWidth = 1280;
-    const int screenHeight = 720;
+    const int screenWidth = 1200;
+    const int screenHeight = 900;
 
     // ---------- Shaders ----------
     static Shader screenUV_shader;
@@ -196,8 +196,8 @@ class Program
         jumpFlood1IsFinal = true;
         int max = (int)Math.Max(screen.X, screen.Y);
         //int steps = Mathf.CeilToInt(Mathf.Log(max)); -> Unity original
-        //int steps = (int)Math.Ceiling(Math.Log(max)); -> my first attempt
         int steps = (int)Math.Ceiling(Math.Log(max, 2.0));
+        if (steps < 1) steps = 1;
 
         float stepSize = 1.0f;
 
@@ -388,7 +388,7 @@ class Program
         Raylib.SetShaderValue(GI_shader, Raylib.GetShaderLocation(GI_shader, "_RayRange"), rayRange, ShaderUniformDataType.Float);
 
         // sky params
-        Raylib.SetShaderValue(GI_shader, Raylib.GetShaderLocation(GI_shader, "_SkyRadiance"), 1.0f, ShaderUniformDataType.Float);
+        Raylib.SetShaderValue(GI_shader, Raylib.GetShaderLocation(GI_shader, "_SkyRadiance"), 2.0f, ShaderUniformDataType.Float);
         Raylib.SetShaderValue(GI_shader, Raylib.GetShaderLocation(GI_shader, "_SkyColor"), new Vector3(0.5f, 0.6f, 0.8f), ShaderUniformDataType.Vec3);
         Raylib.SetShaderValue(GI_shader, Raylib.GetShaderLocation(GI_shader, "_SunColor"), new Vector3(1.0f, 0.9f, 0.6f), ShaderUniformDataType.Vec3);
         Raylib.SetShaderValue(GI_shader, Raylib.GetShaderLocation(GI_shader, "_SunAngle"), 0.3f, ShaderUniformDataType.Float);
