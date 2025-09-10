@@ -20,6 +20,7 @@ class Program
     static RenderTexture2D jumpRT1, jumpRT2;
     static RenderTexture2D distRT;
     static RenderTexture2D giRT1, giRT2;
+    static RenderTexture2D tempRT;
 
     // GI Config
     static int cascadeCount;
@@ -37,7 +38,7 @@ class Program
         jumpFlood_shader = Raylib.LoadShader(null, "shaders/JumpFlood.fs");
         distanceField_shader = Raylib.LoadShader(null, "shaders/DistanceField.fs");
         GI_shader = Raylib.LoadShader(null, "shaders/RadianceCascades.fs");
-        GIBlitter_shader = Raylib.LoadShader(null, "shaders/blitter.glsl");
+        GIBlitter_shader = Raylib.LoadShader(null, "shaders/Merge.fs");
 
         // Setup GI config
         cascadeCount = 6;
@@ -83,6 +84,8 @@ class Program
         giRT2 = Raylib.LoadRenderTexture(cascadeResolution.x, cascadeResolution.y);
         giRT2.Texture.Format = PixelFormat.UncompressedR16G16B16A16;
 
+        tempRT = Raylib.LoadRenderTexture(screenWidth, screenHeight);
+        tempRT.Texture.Format = PixelFormat.UncompressedR32G32B32A32;
         // Initialise all RTs to black
         ClearAllRTs();
 
@@ -123,6 +126,7 @@ class Program
             DrawDebugTexture(distRT, new Vector2(startX, padding * 4 + debugSize * 3), debugSize, "Distance");
             DrawDebugTexture(giRT1, new Vector2(startX, padding * 5 + debugSize * 4), debugSize, "GI1");
             DrawDebugTexture(giRT2, new Vector2(startX, padding * 6 + debugSize * 5), debugSize, "GI2");
+            DrawDebugTexture(tempRT, new Vector2(startX, padding * 7 + debugSize * 6), debugSize, "temp");
 
             Raylib.EndDrawing();
         }
@@ -134,6 +138,7 @@ class Program
         Raylib.UnloadRenderTexture(distRT);
         Raylib.UnloadRenderTexture(giRT1);
         Raylib.UnloadRenderTexture(giRT2);
+        Raylib.UnloadRenderTexture(tempRT);
 
         Raylib.UnloadShader(screenUV_shader);
         Raylib.UnloadShader(jumpFlood_shader);
@@ -329,42 +334,22 @@ class Program
 
         //TODO -> Bilinear filtering in shader!
 
-        /*
-         //Possible fix for self copy colorRT:
-
-        RenderTexture2D tempRT = Raylib.LoadRenderTexture(screenWidth, screenHeight);
-
-Raylib.BeginTextureMode(tempRT);
-Raylib.BeginShaderMode(GIBlitter_shader);
-Raylib.SetShaderValueTexture(GIBlitter_shader, Raylib.GetShaderLocation(GIBlitter_shader, "_GITex"), finalGI.Texture);
-Raylib.DrawTextureRec(colorRT.Texture, 
-    new Rectangle(0, 0, colorRT.Texture.Width, colorRT.Texture.Height),
-    Vector2.Zero, Color.White);
-Raylib.EndShaderMode();
-Raylib.EndTextureMode();
-
-// Copy back to colorRT
-Raylib.BeginTextureMode(colorRT);
-Raylib.DrawTextureRec(tempRT.Texture, 
-    new Rectangle(0, 0, tempRT.Texture.Width, tempRT.Texture.Height),
-    Vector2.Zero, Color.White);
-Raylib.EndTextureMode();
-
-Raylib.UnloadRenderTexture(tempRT);
-         */
-
         RenderTexture2D finalGI = gi1IsFinal ? giRT1 : giRT2;
 
-        Raylib.BeginTextureMode(colorRT);
+        Raylib.BeginTextureMode(tempRT);
         Raylib.BeginShaderMode(GIBlitter_shader);
-
         Raylib.SetShaderValueTexture(GIBlitter_shader, Raylib.GetShaderLocation(GIBlitter_shader, "_GITex"), finalGI.Texture);
-
         Raylib.DrawTextureRec(colorRT.Texture,
-            new Rectangle(0, 0, colorRT.Texture.Width, -colorRT.Texture.Height),
+            new Rectangle(0, 0, colorRT.Texture.Width, colorRT.Texture.Height),
             Vector2.Zero, Color.White);
-
         Raylib.EndShaderMode();
+        Raylib.EndTextureMode();
+
+        // Copy back to colorRT
+        Raylib.BeginTextureMode(colorRT);
+        Raylib.DrawTextureRec(tempRT.Texture,
+            new Rectangle(0, 0, tempRT.Texture.Width, -tempRT.Texture.Height),
+            Vector2.Zero, Color.White);
         Raylib.EndTextureMode();
     }
 
@@ -442,6 +427,10 @@ Raylib.UnloadRenderTexture(tempRT);
         Raylib.EndTextureMode();
 
         Raylib.BeginTextureMode(giRT2);
+        Raylib.ClearBackground(Color.Black);
+        Raylib.EndTextureMode();
+
+        Raylib.BeginTextureMode(tempRT);
         Raylib.ClearBackground(Color.Black);
         Raylib.EndTextureMode();
     }
