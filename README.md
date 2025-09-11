@@ -54,7 +54,8 @@ This project is available under the same license as the original implementation.
 
 ## References
 
-- Paper: https://drive.google.com/file/d/1L6v1_7HY2X-LV3Ofb6oyTIxgEaP4LOI6/view
+- Radiance Cascades 2D Global Illumination Paper: https://drive.google.com/file/d/1L6v1_7HY2X-LV3Ofb6oyTIxgEaP4LOI6/view
 - Raylib-cs: https://github.com/ChrisDill/Raylib-cs
-- Distance Field Generation: https://www.shadertoy.com/view/NttSW7
+- Analytic Direct Illumination: https://www.shadertoy.com/view/NttSW7
+- Distance Field Generation: https://www.shadertoy.com/view/lX3Sz8
 - Radiance Cascades on ShaderToy: https://www.shadertoy.com/view/mtlBzX
