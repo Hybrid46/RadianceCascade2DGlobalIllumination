@@ -57,3 +57,4 @@ This project is available under the same license as the original implementation.
 - Paper: https://drive.google.com/file/d/1L6v1_7HY2X-LV3Ofb6oyTIxgEaP4LOI6/view
 - Raylib-cs: https://github.com/ChrisDill/Raylib-cs
 - Distance Field Generation: https://www.shadertoy.com/view/NttSW7
+- Radiance Cascades on ShaderToy: https://www.shadertoy.com/view/mtlBzX
