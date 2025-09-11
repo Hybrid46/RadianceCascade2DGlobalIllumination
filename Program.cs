@@ -17,6 +17,7 @@ class Program
 
     // ---------- Render textures ----------
     static RenderTexture2D colorRT;
+    static RenderTexture2D emissiveRT;
     static RenderTexture2D jumpRT1, jumpRT2;
     static RenderTexture2D distRT;
     static RenderTexture2D giRT1, giRT2;
@@ -66,6 +67,9 @@ class Program
             giRT1, new RenderTextureDescriptor(cascadeResolution.x, cascadeResolution.y, RenderTextureFormat.ARGBHalf, 0), FilterMode.Bilinear);
             giRT2, new RenderTextureDescriptor(cascadeResolution.x, cascadeResolution.y, RenderTextureFormat.ARGBHalf, 0), FilterMode.Bilinear); 
          */
+
+        emissiveRT = Raylib.LoadRenderTexture(screenWidth, screenHeight);
+        colorRT.Texture.Format = PixelFormat.UncompressedR32G32B32A32;
 
         colorRT = Raylib.LoadRenderTexture(screenWidth, screenHeight);
         colorRT.Texture.Format = PixelFormat.UncompressedR32G32B32A32;
@@ -123,7 +127,8 @@ class Program
             int startX = screenWidth - debugSize - padding;
 
             DrawDebugTexture(colorRT, new Vector2(startX, padding), debugSize, "Scene");
-            DrawDebugTexture(jumpRT1, new Vector2(startX, padding * 2 + debugSize), debugSize, "Jump1");
+            DrawDebugTexture(emissiveRT, new Vector2(startX, padding * 2 + debugSize), debugSize, "Emissive");
+            //DrawDebugTexture(jumpRT2, new Vector2(startX, padding * 3 + debugSize * 2), debugSize, "Jump2");
             DrawDebugTexture(jumpRT2, new Vector2(startX, padding * 3 + debugSize * 2), debugSize, "Jump2");
             DrawDebugTexture(distRT, new Vector2(startX, padding * 4 + debugSize * 3), debugSize, "Distance");
             DrawDebugTexture(giRT1, new Vector2(startX, padding * 5 + debugSize * 4), debugSize, "GI1");
@@ -135,6 +140,7 @@ class Program
 
         // cleanup
         Raylib.UnloadRenderTexture(colorRT);
+        Raylib.UnloadRenderTexture(emissiveRT);
         Raylib.UnloadRenderTexture(jumpRT1);
         Raylib.UnloadRenderTexture(jumpRT2);
         Raylib.UnloadRenderTexture(distRT);
@@ -166,6 +172,18 @@ class Program
             (float)(Raylib.GetTime() * 100f % screenWidth),
             (float)(Raylib.GetTime() * 75f % screenHeight));
         Raylib.DrawCircleV(pos, 20f, Color.Lime);
+
+        Raylib.EndTextureMode();
+
+        //emission
+        Raylib.BeginTextureMode(emissiveRT);
+        Raylib.ClearBackground(new Color(0, 0, 0, 0));
+
+        // moving sprite
+        Vector2 emissivePos = new Vector2(
+            (float)(Raylib.GetTime() * 5 * 66f % screenWidth),
+            (float)(Raylib.GetTime() * 5 * 46f % screenHeight));
+        Raylib.DrawCircleV(emissivePos, 100f, Color.Orange);
 
         Raylib.EndTextureMode();
     }
@@ -269,7 +287,6 @@ class Program
         // ---- 3. Distance field ----
         RenderTexture2D finalJumpFloodRT = jumpFlood1IsFinal ? jumpRT1 : jumpRT2;
         Raylib.BeginTextureMode(distRT);
-        Raylib.ClearBackground(Color.Black);
         Raylib.BeginShaderMode(distanceField_shader);
 
         Raylib.DrawTextureRec(finalJumpFloodRT.Texture,
@@ -296,6 +313,21 @@ class Program
                 gi1IsFinal = !gi1IsFinal;
             }                
          */
+
+
+        // 3.1 Draw something into giRT1 to start the cascade process
+
+        Raylib.BeginTextureMode(giRT2);
+        Raylib.ClearBackground(Color.Black);
+
+        // moving sprite
+        Vector2 pos = new Vector2(
+            (float)(Raylib.GetTime() * 100f % screenWidth),
+            (float)(Raylib.GetTime() * 75f % screenHeight));
+        Raylib.DrawCircleV(pos, 20f, Color.Lime);
+
+        Raylib.EndTextureMode();
+
 
         // ---- 4. Radiance cascades ----
         gi1IsFinal = false;
@@ -374,6 +406,7 @@ class Program
 
         // bind textures
         Raylib.SetShaderValueTexture(GI_shader, Raylib.GetShaderLocation(GI_shader, "_ColorTex"), colorRT.Texture);
+        Raylib.SetShaderValueTexture(GI_shader, Raylib.GetShaderLocation(GI_shader, "_EmissiveTex"), emissiveRT.Texture);
         Raylib.SetShaderValueTexture(GI_shader, Raylib.GetShaderLocation(GI_shader, "_DistanceTex"), distRT.Texture);
 
         // uniform params
@@ -413,6 +446,10 @@ class Program
     {
         Raylib.BeginTextureMode(colorRT);
         Raylib.ClearBackground(Color.Black);
+        Raylib.EndTextureMode();
+
+        Raylib.BeginTextureMode(emissiveRT);
+        Raylib.ClearBackground(Color.Blank);
         Raylib.EndTextureMode();
 
         Raylib.BeginTextureMode(jumpRT1);
