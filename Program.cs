@@ -44,7 +44,7 @@ class Program
         // Setup GI config
         cascadeCount = 6;
         renderScale = 1.0f;
-        rayRange = 1.0f;
+        rayRange = 2.0f;
 
         // Unity Original
         //int cascadeWidth = Mathf.CeilToInt((screenWidth * renderScale) / Math.Pow(2, cascadeCount)) * (int)Math.Pow(2, cascadeCount);
@@ -173,6 +173,15 @@ class Program
             (float)(Raylib.GetTime() * 75f % screenHeight));
         Raylib.DrawCircleV(pos, 20f, Color.Lime);
 
+        // moving sprite
+        for (int i = 1; i < 2; i++)
+        {
+            Vector2 emissivePos = new Vector2(
+                (float)(Raylib.GetTime() * i * 66f % screenWidth),
+                (float)(Raylib.GetTime() * i * 46f % screenHeight));
+            Raylib.DrawCircleV(emissivePos, 80f, Color.Orange);
+        }
+
         Raylib.EndTextureMode();
 
         //emission
@@ -180,10 +189,13 @@ class Program
         Raylib.ClearBackground(new Color(0, 0, 0, 0));
 
         // moving sprite
-        Vector2 emissivePos = new Vector2(
-            (float)(Raylib.GetTime() * 5 * 66f % screenWidth),
-            (float)(Raylib.GetTime() * 5 * 46f % screenHeight));
-        Raylib.DrawCircleV(emissivePos, 100f, Color.Orange);
+        for (int i = 1; i < 2; i++)
+        {
+            Vector2 emissivePos = new Vector2(
+                (float)(Raylib.GetTime() * i * 66f % screenWidth),
+                (float)(Raylib.GetTime() * i * 46f % screenHeight));
+            Raylib.DrawCircleV(emissivePos, 100f, Color.Orange);
+        }
 
         Raylib.EndTextureMode();
     }
@@ -328,7 +340,6 @@ class Program
 
         Raylib.EndTextureMode();
 
-
         // ---- 4. Radiance cascades ----
         gi1IsFinal = false;
 
@@ -449,7 +460,7 @@ class Program
         Raylib.EndTextureMode();
 
         Raylib.BeginTextureMode(emissiveRT);
-        Raylib.ClearBackground(Color.Blank);
+        Raylib.ClearBackground(Color.Black);
         Raylib.EndTextureMode();
 
         Raylib.BeginTextureMode(jumpRT1);
