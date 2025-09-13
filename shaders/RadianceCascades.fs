@@ -1,4 +1,4 @@
-#version 330 core
+﻿#version 330 core
 
 in vec2 fragTexCoord;
 out vec4 fragColor;
@@ -23,6 +23,18 @@ uniform float _SunAngle;
 const float TAU = 6.28318530718;
 
 // ----------------- Helpers -----------------
+
+vec2 EncodeFloatRG(float v) {
+    float enc = clamp(v, 0.0, 1.0) * 65535.0;
+    float hi = floor(enc / 256.0);
+    float lo = enc - hi * 256.0;
+    return vec2(hi, lo) / 255.0;
+}
+
+float DecodeFloatRG(vec2 rg) {
+    vec2 b = floor(rg * 255.0 + 0.5); // round to nearest
+    return (b.x * 256.0 + b.y) / 65535.0;
+}
 
 vec2 CalculateRayRange(int index, int count)
 {
@@ -61,7 +73,7 @@ vec4 SampleRadianceSDF(vec2 rayOrigin, vec2 rayDirection, vec2 rayRange)
             break;
         }
 
-        float distance = texture(_DistanceTex, currentPosition).r;
+        float distance = DecodeFloatRG(texture(_DistanceTex, currentPosition).rg);
 
         if (distance < 0.001)
         {

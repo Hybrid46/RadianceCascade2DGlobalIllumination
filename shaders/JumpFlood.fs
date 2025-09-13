@@ -7,6 +7,18 @@ uniform sampler2D _MainTex;   // contains UVs from previous pass
 uniform float _StepSize;
 uniform vec2 _Aspect;         // screen / max(screen.x, screen.y)
 
+vec2 EncodeFloatRG(float v) {
+    float enc = clamp(v, 0.0, 1.0) * 65535.0;
+    float hi = floor(enc / 256.0);
+    float lo = enc - hi * 256.0;
+    return vec2(hi, lo) / 255.0;
+}
+
+float DecodeFloatRG(vec2 rg) {
+    vec2 b = floor(rg * 255.0 + 0.5); // round to nearest
+    return (b.x * 256.0 + b.y) / 65535.0;
+}
+
 void main()
 {
     float minDist = 1.0;
@@ -17,7 +29,8 @@ void main()
         for (int x = -1; x <= 1; ++x)
         {
             vec2 peekUV = fragTexCoord + vec2(x, y) * _Aspect.yx * _StepSize;
-            vec2 peek   = texture(_MainTex, peekUV).xy;
+            vec4 sampledPeek = texture(_MainTex, peekUV);
+            vec2 peek   = vec2(DecodeFloatRG(sampledPeek.rg),DecodeFloatRG(sampledPeek.ba));
 
             if (peek.x != 0.0 && peek.y != 0.0) // skip empty
             {
@@ -33,5 +46,5 @@ void main()
         }
     }
 
-    fragColor = vec4(bestUV, 0.0, 1.0);
+    fragColor = vec4(EncodeFloatRG(bestUV.x), EncodeFloatRG(bestUV.y));
 }

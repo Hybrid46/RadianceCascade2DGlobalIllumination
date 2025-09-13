@@ -248,6 +248,8 @@ class Program
         Raylib.BeginTextureMode(distRT);
         Raylib.BeginShaderMode(distanceField_shader);
 
+        Raylib.SetShaderValue(distanceField_shader, Raylib.GetShaderLocation(distanceField_shader, "_Aspect"), aspect, ShaderUniformDataType.Vec2);
+
         Raylib.DrawTextureRec(finalJumpFloodRT.Texture,
             new Rectangle(0, 0, finalJumpFloodRT.Texture.Width, -finalJumpFloodRT.Texture.Height),
             Vector2.Zero, Color.White);
