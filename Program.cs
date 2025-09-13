@@ -63,6 +63,10 @@ class Program
         giRT2 = Raylib.LoadRenderTexture(cascadeResolution.x, cascadeResolution.y);
         tempRT = Raylib.LoadRenderTexture(screenWidth, screenHeight);
 
+        Raylib.SetTextureFilter(giRT1.Texture, TextureFilter.Bilinear);
+        Raylib.SetTextureFilter(giRT2.Texture, TextureFilter.Bilinear);
+        Raylib.SetTextureFilter(tempRT.Texture, TextureFilter.Bilinear);
+
         //emissiveRT.Texture.Format = PixelFormat.UncompressedR32G32B32A32;
         //colorRT.Texture.Format = PixelFormat.UncompressedR32G32B32A32;
         //distRT.Texture.Format = PixelFormat.UncompressedR16;
@@ -247,6 +251,9 @@ class Program
         RenderTexture2D finalJumpFloodRT = jumpFlood1IsFinal ? jumpRT1 : jumpRT2;
         Raylib.BeginTextureMode(distRT);
         Raylib.BeginShaderMode(distanceField_shader);
+
+        //aspect ratio unnecessary because both textures are same size
+        //Raylib.SetShaderValue(distanceField_shader, Raylib.GetShaderLocation(distanceField_shader, "_Aspect"), aspect, ShaderUniformDataType.Vec2);
 
         Raylib.DrawTextureRec(finalJumpFloodRT.Texture,
             new Rectangle(0, 0, finalJumpFloodRT.Texture.Width, -finalJumpFloodRT.Texture.Height),
