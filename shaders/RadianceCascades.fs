@@ -65,12 +65,12 @@ vec4 SampleRadianceSDF(vec2 rayOrigin, vec2 rayDirection, vec2 rayRange)
 
         if (distance < 0.001)
         {
-            vec3 baseColor = texture(_ColorTex, currentPosition).rgb;
             vec3 emission  = texture(_EmissiveTex, currentPosition).rgb;
 
             if (length(emission) > 0.0) {
                 hit = vec4(emission, 1.0); // <-- Treat emission as radiance
             } else {
+                vec3 baseColor = texture(_ColorTex, currentPosition).rgb;
                 hit = vec4(baseColor, 0.0); // <-- normal surface
             }
             break;

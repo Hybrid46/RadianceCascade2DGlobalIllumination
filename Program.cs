@@ -63,9 +63,15 @@ class Program
         giRT2 = Raylib.LoadRenderTexture(cascadeResolution.x, cascadeResolution.y);
         tempRT = Raylib.LoadRenderTexture(screenWidth, screenHeight);
 
+        Raylib.SetTextureFilter(emissiveRT.Texture, TextureFilter.Point);
+        Raylib.SetTextureFilter(colorRT.Texture, TextureFilter.Point);
+        Raylib.SetTextureFilter(distRT.Texture, TextureFilter.Point);
+        Raylib.SetTextureFilter(jumpRT1.Texture, TextureFilter.Point);
+        Raylib.SetTextureFilter(jumpRT2.Texture, TextureFilter.Point);
+        Raylib.SetTextureFilter(tempRT.Texture, TextureFilter.Point);
+
         Raylib.SetTextureFilter(giRT1.Texture, TextureFilter.Bilinear);
         Raylib.SetTextureFilter(giRT2.Texture, TextureFilter.Bilinear);
-        Raylib.SetTextureFilter(tempRT.Texture, TextureFilter.Bilinear);
 
         //emissiveRT.Texture.Format = PixelFormat.UncompressedR32G32B32A32;
         //colorRT.Texture.Format = PixelFormat.UncompressedR32G32B32A32;
