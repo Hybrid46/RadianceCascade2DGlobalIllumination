@@ -29,6 +29,20 @@ class Program
     static float rayRange;
     static Vector2Int cascadeResolution;
 
+    // Sun settings (default values)
+    static float sunAngle = 0.3f;
+    static Vector3 sunColor = new Vector3(1.0f, 0.9f, 0.6f);
+    static Vector3 skyColor = new Vector3(0.5f, 0.6f, 0.8f);
+    static float skyRadiance = 1.0f;
+
+    static Color currentLightColor = Color.Red;
+    static Random rng = new Random();
+
+    // Store walls as points (later drawn as squares)
+    static List<Vector2> wallPoints = new List<Vector2>();
+    // Store lights as positions + colors
+    static List<(Vector2 pos, Color col)> lightPoints = new List<(Vector2, Color)>();
+
     static void Main()
     {
         Raylib.InitWindow(screenWidth, screenHeight, "RC2DGI in Raylib");
@@ -100,6 +114,9 @@ class Program
             // 1. Scene render
             RenderScene(walls);
 
+            HandlePainting();
+            RedrawSceneToRTs();
+
             // 2. RC2DGI pipeline
             DoRC2DGI();
 
@@ -116,6 +133,7 @@ class Program
             int debugSize = 100;
             int padding = 10;
             int startX = screenWidth - debugSize - padding;
+            DrawSunGUI();
 
             DrawDebugTexture(colorRT, new Vector2(startX, padding), debugSize, "Scene");
             DrawDebugTexture(emissiveRT, new Vector2(startX, padding * 2 + debugSize), debugSize, "Emissive");
@@ -126,7 +144,7 @@ class Program
             DrawDebugTexture(giRT2, new Vector2(startX, padding * 6 + debugSize * 5), debugSize, "GI2");
             DrawDebugTexture(tempRT, new Vector2(startX, padding * 7 + debugSize * 6), debugSize, "temp");
 
-            Raylib.EndDrawing();
+            Raylib.EndDrawing();            
         }
 
         // cleanup
@@ -146,6 +164,22 @@ class Program
         Raylib.UnloadShader(GIBlitter_shader);
 
         Raylib.CloseWindow();
+    }
+
+    private static void DrawSunGUI()
+    {
+        GuiPanel(new Rectangle(10, 10, 260, 300), "Sun Settings");
+
+        sunAngle = GuiSlider(new Rectangle(20, 50, 200, 20), "Sun Angle", sunAngle, 0f, MathF.PI);
+        skyRadiance = GuiSlider(new Rectangle(20, 80, 200, 20), "Sky Radiance", skyRadiance, 0f, 3f);
+
+        sunColor.X = GuiSlider(new Rectangle(20, 110, 200, 20), "Sun Red", sunColor.X, 0f, 1f);
+        sunColor.Y = GuiSlider(new Rectangle(20, 140, 200, 20), "Sun Green", sunColor.Y, 0f, 1f);
+        sunColor.Z = GuiSlider(new Rectangle(20, 170, 200, 20), "Sun Blue", sunColor.Z, 0f, 1f);
+
+        skyColor.X = GuiSlider(new Rectangle(20, 200, 200, 20), "Sky Red", skyColor.X, 0f, 1f);
+        skyColor.Y = GuiSlider(new Rectangle(20, 230, 200, 20), "Sky Green", skyColor.Y, 0f, 1f);
+        skyColor.Z = GuiSlider(new Rectangle(20, 260, 200, 20), "Sky Blue", skyColor.Z, 0f, 1f);
     }
 
     // ---------- Render helpers ----------
@@ -330,10 +364,11 @@ class Program
         Raylib.SetShaderValue(GI_shader, Raylib.GetShaderLocation(GI_shader, "_RayRange"), rayRange, ShaderUniformDataType.Float);
 
         // sky params
-        Raylib.SetShaderValue(GI_shader, Raylib.GetShaderLocation(GI_shader, "_SkyRadiance"), 1.0f, ShaderUniformDataType.Float);
-        Raylib.SetShaderValue(GI_shader, Raylib.GetShaderLocation(GI_shader, "_SkyColor"), new Vector3(0.5f, 0.6f, 0.8f), ShaderUniformDataType.Vec3);
-        Raylib.SetShaderValue(GI_shader, Raylib.GetShaderLocation(GI_shader, "_SunColor"), new Vector3(1.0f, 0.9f, 0.6f), ShaderUniformDataType.Vec3);
-        Raylib.SetShaderValue(GI_shader, Raylib.GetShaderLocation(GI_shader, "_SunAngle"), 0.3f, ShaderUniformDataType.Float);
+        Raylib.SetShaderValue(GI_shader, Raylib.GetShaderLocation(GI_shader, "_SkyRadiance"), skyRadiance, ShaderUniformDataType.Float);
+        Raylib.SetShaderValue(GI_shader, Raylib.GetShaderLocation(GI_shader, "_SkyColor"), skyColor, ShaderUniformDataType.Vec3);
+        Raylib.SetShaderValue(GI_shader, Raylib.GetShaderLocation(GI_shader, "_SunColor"), sunColor, ShaderUniformDataType.Vec3);
+        Raylib.SetShaderValue(GI_shader, Raylib.GetShaderLocation(GI_shader, "_SunAngle"), sunAngle, ShaderUniformDataType.Float);
+
     }
 
     static void DrawDebugTexture(RenderTexture2D texture, Vector2 position, int size, string label)
@@ -384,5 +419,77 @@ class Program
         Raylib.BeginTextureMode(tempRT);
         Raylib.ClearBackground(Color.Black);
         Raylib.EndTextureMode();
+    }
+
+    static void HandlePainting()
+    {
+        Vector2 mouse = Raylib.GetMousePosition();
+
+        // Walls (right click)
+        if (Raylib.IsMouseButtonDown(MouseButton.Right))
+        {
+            wallPoints.Add(mouse);
+        }
+
+        // Lights (left click)
+        if (Raylib.IsMouseButtonPressed(MouseButton.Left))
+        {
+            currentLightColor = new Color(rng.Next(256), rng.Next(256), rng.Next(256), 255);
+        }
+        if (Raylib.IsMouseButtonDown(MouseButton.Left))
+        {
+            lightPoints.Add((mouse, currentLightColor));
+        }
+    }
+
+    static void RedrawSceneToRTs()
+    {
+        // Walls → colorRT
+        Raylib.BeginTextureMode(colorRT);
+        //Raylib.ClearBackground(Color.Black);
+        foreach (var p in wallPoints)
+        {
+            Raylib.DrawRectangle((int)p.X - 5, (int)p.Y - 5, 10, 10, Color.White);
+        }
+        Raylib.EndTextureMode();
+
+        // Lights → emissiveRT
+        Raylib.BeginTextureMode(emissiveRT);
+        //Raylib.ClearBackground(Color.Black);
+        foreach (var l in lightPoints)
+        {
+            Raylib.DrawCircleV(l.pos, 10, l.col);
+        }
+        Raylib.EndTextureMode();
+    }
+
+    static float GuiSlider(Rectangle bounds, string text, float value, float min, float max)
+    {
+        Vector2 mouse = Raylib.GetMousePosition();
+        bool hovering = Raylib.CheckCollisionPointRec(mouse, bounds);
+
+        if (hovering && Raylib.IsMouseButtonDown(MouseButton.Left))
+        {
+            float t = (mouse.X - bounds.X) / bounds.Width;
+            value = Math.Clamp(min + t * (max - min), min, max);
+        }
+
+        // draw background
+        Raylib.DrawRectangleRec(bounds, new Color(60, 60, 60, 255));
+        // draw fill
+        float filledW = (value - min) / (max - min) * bounds.Width;
+        Raylib.DrawRectangle((int)bounds.X, (int)bounds.Y, (int)filledW, (int)bounds.Height, new Color(100, 200, 255, 255));
+
+        // draw text + value
+        Raylib.DrawText($"{text}: {value:0.00}", (int)bounds.X, (int)bounds.Y - 18, 16, Color.White);
+
+        return value;
+    }
+
+    static void GuiPanel(Rectangle bounds, string title)
+    {
+        Raylib.DrawRectangleRec(bounds, new Color(30, 30, 30, 220));
+        Raylib.DrawRectangleLinesEx(bounds, 2, Color.Gray);
+        Raylib.DrawText(title, (int)bounds.X + 5, (int)bounds.Y + 5, 18, Color.White);
     }
 }
