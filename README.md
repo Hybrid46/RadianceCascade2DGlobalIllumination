@@ -14,16 +14,16 @@
 ---
 
 ## Table of Contents
-1. [Overview](#overview)
-2. [Features](#features)
-3. [Architecture & Pipeline](#architecture--pipeline)
-4. [Shaders & Uniforms](#shaders--uniforms)
-5. [Controls & UI](#controls--ui)
-6. [Building & Running](#building--running)
-7. [Extending & Tweaking](#extending--tweaking)
-8. [Known Issues & Limitations](#known-issues--limitations)
-9. [Acknowledgements](#acknowledgements)
-10. [License](#license)
+1. [Overview](#1-overview)
+2. [Features](#2-features)
+3. [Architecture & Pipeline](#3-architecture-pipeline)
+4. [Shaders & Uniforms](#4-shaders-uniforms)
+5. [Controls & UI](#5-controls-ui)
+6. [Building & Running](#6-building-running)
+7. [Extending & Tweaking](#7-extending-tweaking)
+8. [Known Issues & Limitations](#8-known-issues-limitations)
+9. [Acknowledgements](#9-acknowledgements)
+10. [License](#10-license)
 
 ---
 
