@@ -227,7 +227,7 @@ To experiment, change the values in `RC2DGI.cs` or add command‑line arguments 
   <https://github.com/Youssef-Afella/UnityURP-RadianceCascades2DGI>
 * **Raylib** – Lightweight game framework. 
 * **Raylib‑cs** – C# bindings.  
-| https://github.com/ChrisDill/Raylib-cs 
+  <https://github.com/ChrisDill/Raylib-cs>
 * **Shadertoy** – Inspiration for distance field, radiance cascades and analytic direct illumination shaders:  
   * Analytic Direct Illumination: <https://www.shadertoy.com/view/NttSW7>
   * Distance Field Generation: <https://www.shadertoy.com/view/lX3Sz8>
