@@ -1,4 +1,5 @@
 #version 330 core
+precision highp float;
 
 in vec2 fragTexCoord;
 out vec4 fragColor;
@@ -10,5 +11,5 @@ void main()
 {
     vec4 color = texture(_MainTex, fragTexCoord);
     vec3 gi = texture(_GITex, fragTexCoord).rgb;
-    fragColor = vec4(color.rgb + gi, color.a);
+    fragColor = vec4(min(color.rgb + gi, 1), color.a);
 }
