@@ -38,9 +38,9 @@ class RC2DGI
     static Color currentLightColor = Color.White;
 
     // Store walls as points (later drawn as squares)
-    static List<Vector2> wallPoints = new List<Vector2>();
+    static HashSet<Vector2> wallPoints = new HashSet<Vector2>();
     // Store lights as positions + colors
-    static List<(Vector2 pos, Color col)> lightPoints = new List<(Vector2, Color)>();
+    static HashSet<(Vector2 pos, Color col)> lightPoints = new HashSet<(Vector2, Color)>();
 
     static void Main()
     {
