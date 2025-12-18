@@ -1,5 +1,4 @@
 ﻿using Raylib_cs;
-using System;
 using System.Numerics;
 
 class RC2DGI
@@ -33,10 +32,10 @@ class RC2DGI
     static float sunAngle = 0.3f;
     static Vector3 sunColor = new Vector3(1.0f, 0.9f, 0.6f);
     static Vector3 skyColor = new Vector3(0.5f, 0.6f, 0.8f);
+    static Vector3 paintColor = new Vector3(1f, 1f, 1f);
     static float skyRadiance = 1.0f;
 
-    static Color currentLightColor = Color.Red;
-    static Random rng = new Random();
+    static Color currentLightColor = Color.White;
 
     // Store walls as points (later drawn as squares)
     static List<Vector2> wallPoints = new List<Vector2>();
@@ -47,6 +46,8 @@ class RC2DGI
     {
         Raylib.InitWindow(screenWidth, screenHeight, "RC2DGI in Raylib");
         Raylib.SetTargetFPS(60);
+
+        bool isGUIOpen = false;
 
         // Load shaders
         screenUV_shader = Raylib.LoadShader(null, "shaders/ScreenUV.fs");
@@ -114,7 +115,8 @@ class RC2DGI
             // 1. Scene render
             RenderScene(walls);
 
-            HandlePainting();
+            isGUIOpen = HendleKeyboard(isGUIOpen);
+            if (!isGUIOpen) HandleMouse();
             RedrawSceneToRTs();
 
             // 2. RC2DGI pipeline
@@ -133,18 +135,19 @@ class RC2DGI
             int debugSize = 100;
             int padding = 10;
             int startX = screenWidth - debugSize - padding;
-            DrawSunGUI();
+            if (isGUIOpen) DrawSunGUI();
+            Raylib.DrawText("Press G to open GUI, C to reset scene, Mouse (with closed GUI) right for walling and left for light emit.", 10, screenHeight - 30, 20, Color.White);
 
             DrawDebugTexture(colorRT, new Vector2(startX, padding), debugSize, "Scene");
             DrawDebugTexture(emissiveRT, new Vector2(startX, padding * 2 + debugSize), debugSize, "Emissive");
-            //DrawDebugTexture(jumpRT2, new Vector2(startX, padding * 3 + debugSize * 2), debugSize, "Jump2");
+            //DrawDebugTexture(jumpRT1, new Vector2(startX, padding * 3 + debugSize * 2), debugSize, "Jump1");
             DrawDebugTexture(jumpRT2, new Vector2(startX, padding * 3 + debugSize * 2), debugSize, "Jump2");
             DrawDebugTexture(distRT, new Vector2(startX, padding * 4 + debugSize * 3), debugSize, "Distance");
             DrawDebugTexture(giRT1, new Vector2(startX, padding * 5 + debugSize * 4), debugSize, "GI1");
             DrawDebugTexture(giRT2, new Vector2(startX, padding * 6 + debugSize * 5), debugSize, "GI2");
             DrawDebugTexture(tempRT, new Vector2(startX, padding * 7 + debugSize * 6), debugSize, "temp");
 
-            Raylib.EndDrawing();            
+            Raylib.EndDrawing();
         }
 
         // cleanup
@@ -168,18 +171,33 @@ class RC2DGI
 
     private static void DrawSunGUI()
     {
-        GuiPanel(new Rectangle(10, 10, 260, 300), "Sun Settings");
+        int lineNumber = 0;
+        GuiPanel(new Rectangle(10, 10, 260, 500), "Sun Settings");
 
-        sunAngle = GuiSlider(new Rectangle(20, 50, 200, 20), "Sun Angle", sunAngle, 0f, MathF.PI);
-        skyRadiance = GuiSlider(new Rectangle(20, 80, 200, 20), "Sky Radiance", skyRadiance, 0f, 3f);
+        sunAngle = GuiSlider(new Rectangle(20, GetLineY(ref lineNumber), 200, 20), "Sun Angle", sunAngle, 0f, MathF.PI);
+        skyRadiance = GuiSlider(new Rectangle(20, GetLineY(ref lineNumber), 200, 20), "Sky Radiance", skyRadiance, 0f, 3f);
 
-        sunColor.X = GuiSlider(new Rectangle(20, 110, 200, 20), "Sun Red", sunColor.X, 0f, 1f);
-        sunColor.Y = GuiSlider(new Rectangle(20, 140, 200, 20), "Sun Green", sunColor.Y, 0f, 1f);
-        sunColor.Z = GuiSlider(new Rectangle(20, 170, 200, 20), "Sun Blue", sunColor.Z, 0f, 1f);
+        sunColor.X = GuiSlider(new Rectangle(20, GetLineY(ref lineNumber), 200, 20), "Sun Red", sunColor.X, 0f, 1f);
+        sunColor.Y = GuiSlider(new Rectangle(20, GetLineY(ref lineNumber), 200, 20), "Sun Green", sunColor.Y, 0f, 1f);
+        sunColor.Z = GuiSlider(new Rectangle(20, GetLineY(ref lineNumber), 200, 20), "Sun Blue", sunColor.Z, 0f, 1f);
 
-        skyColor.X = GuiSlider(new Rectangle(20, 200, 200, 20), "Sky Red", skyColor.X, 0f, 1f);
-        skyColor.Y = GuiSlider(new Rectangle(20, 230, 200, 20), "Sky Green", skyColor.Y, 0f, 1f);
-        skyColor.Z = GuiSlider(new Rectangle(20, 260, 200, 20), "Sky Blue", skyColor.Z, 0f, 1f);
+        skyColor.X = GuiSlider(new Rectangle(20, GetLineY(ref lineNumber), 200, 20), "Sky Red", skyColor.X, 0f, 1f);
+        skyColor.Y = GuiSlider(new Rectangle(20, GetLineY(ref lineNumber), 200, 20), "Sky Green", skyColor.Y, 0f, 1f);
+        skyColor.Z = GuiSlider(new Rectangle(20, GetLineY(ref lineNumber), 200, 20), "Sky Blue", skyColor.Z, 0f, 1f);
+
+        paintColor.X = GuiSlider(new Rectangle(20, GetLineY(ref lineNumber), 200, 20), "Light Red", paintColor.X, 0f, 1f);
+        paintColor.Y = GuiSlider(new Rectangle(20, GetLineY(ref lineNumber), 200, 20), "Light Green", paintColor.Y, 0f, 1f);
+        paintColor.Z = GuiSlider(new Rectangle(20, GetLineY(ref lineNumber), 200, 20), "Light Blue", paintColor.Z, 0f, 1f);
+
+        int GetLineY(ref int line)
+        {
+            int initialY = 60;
+            int heightPerLine = 40;
+
+            int posY = initialY + line * heightPerLine;
+            line++;
+            return posY;
+        }
     }
 
     // ---------- Render helpers ----------
@@ -324,8 +342,6 @@ class RC2DGI
             gi1IsFinal = !gi1IsFinal;
         }
 
-        //TODO -> Bilinear filtering in shader!
-
         RenderTexture2D finalGI = gi1IsFinal ? giRT1 : giRT2;
 
         Raylib.BeginTextureMode(tempRT);
@@ -421,9 +437,11 @@ class RC2DGI
         Raylib.EndTextureMode();
     }
 
-    static void HandlePainting()
+    static void HandleMouse()
     {
         Vector2 mouse = Raylib.GetMousePosition();
+        mouse.X = MathF.Round(mouse.X);
+        mouse.Y = MathF.Round(mouse.Y);
 
         // Walls (right click)
         if (Raylib.IsMouseButtonDown(MouseButton.Right))
@@ -434,7 +452,7 @@ class RC2DGI
         // Lights (left click)
         if (Raylib.IsMouseButtonPressed(MouseButton.Left))
         {
-            currentLightColor = new Color(rng.Next(256), rng.Next(256), rng.Next(256), 255);
+            currentLightColor = new Color(paintColor.X, paintColor.Y, paintColor.Z);
         }
 
         if (Raylib.IsMouseButtonDown(MouseButton.Left))
@@ -442,11 +460,23 @@ class RC2DGI
             wallPoints.Add(mouse);
             lightPoints.Add((mouse, currentLightColor));
         }
+    }
 
+    static bool HendleKeyboard(bool isGUIOpen)
+    {
         if (Raylib.IsKeyPressed(KeyboardKey.C))
         {
             lightPoints.Clear();
             wallPoints.Clear();
+        }
+
+        if (Raylib.IsKeyPressed(KeyboardKey.G))
+        {
+            return !isGUIOpen;
+        }
+        else
+        {
+            return isGUIOpen;
         }
     }
 
@@ -454,8 +484,7 @@ class RC2DGI
     {
         // Walls → colorRT
         Raylib.BeginTextureMode(colorRT);
-        //Raylib.ClearBackground(Color.Black);
-        foreach (var p in wallPoints)
+        foreach (Vector2 p in wallPoints)
         {
             Raylib.DrawRectangle((int)p.X - 5, (int)p.Y - 5, 10, 10, Color.White);
         }
@@ -463,8 +492,7 @@ class RC2DGI
 
         // Lights → emissiveRT
         Raylib.BeginTextureMode(emissiveRT);
-        //Raylib.ClearBackground(Color.Black);
-        foreach (var l in lightPoints)
+        foreach ((Vector2 pos, Color col) l in lightPoints)
         {
             Raylib.DrawCircleV(l.pos, 10, l.col);
         }
