@@ -1,5 +1,5 @@
 #version 330 core
-
+//#define PACKING
 precision highp float;
 
 in vec2 fragTexCoord;
@@ -23,6 +23,17 @@ uniform vec3 _SunColor;
 uniform float _SunAngle;
 
 const float TAU = 6.28318530718;
+
+#ifdef PACKING
+float unpackUNorm16(vec2 rg)
+{
+    uint x =
+        (uint(rg.r * 255.0 + 0.5) << 8) |
+         uint(rg.g * 255.0 + 0.5);
+
+    return float(x) / 65535.0;
+}
+#endif
 
 // ----------------- Helpers -----------------
 
@@ -62,8 +73,11 @@ vec4 SampleRadianceSDF(vec2 rayOrigin, vec2 rayDirection, vec2 rayRange)
         {
             break;
         }
-
-        float distance = texture(_DistanceTex, currentPosition).r;
+        #ifdef PACKING
+            float distance = unpackUNorm16( texture(_DistanceTex, currentPosition).rg );
+        #else
+            float distance = texture(_DistanceTex, currentPosition).r;
+        #endif
 
         if (distance < 0.001)
         {
