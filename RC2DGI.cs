@@ -436,8 +436,10 @@ class RC2DGI
         {
             currentLightColor = new Color(rng.Next(256), rng.Next(256), rng.Next(256), 255);
         }
+
         if (Raylib.IsMouseButtonDown(MouseButton.Left))
         {
+            wallPoints.Add(mouse);
             lightPoints.Add((mouse, currentLightColor));
         }
 
