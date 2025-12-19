@@ -9,6 +9,10 @@ uniform sampler2D _MainTex;
 
 void main()
 {
+    // alpha masking
+    // float alpha = tex2D(_MainTex, i.uv).a;
+    // return i.uv * (1 - step(alpha, 0.5));
+
     vec4 mainColor = texture(_MainTex, fragTexCoord);
 
     // treat non-black as occluder;
