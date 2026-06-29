@@ -133,6 +133,12 @@ class RC2DGI
                 new Rectangle(0, 0, colorRT.Texture.Width, -colorRT.Texture.Height),
                 Vector2.Zero, Color.White);
 
+            // --- FPS & Frame Time Display ---
+            float frameTimeMs = Raylib.GetFrameTime() * 1000f;
+            int currentFps = Raylib.GetFPS();
+            Raylib.DrawText($"FPS: {currentFps} | Frame Time: {frameTimeMs:F1} ms", 400, 10, 20, Color.White);
+            // ------------------------------
+
             // Draw debug textures
             int debugSize = 100;
             int padding = 10;
@@ -350,24 +356,27 @@ class RC2DGI
         // Determine the final cascade buffer
         RenderTexture2D finalGI = gi1IsFinal ? giRT1 : giRT2;
 
-        // ---- 5. Blur the final cascade result ----
-        Raylib.BeginTextureMode(cascadeBlurRT);
-        Raylib.ClearBackground(Color.Black);
-        Raylib.BeginShaderMode(blur_shader);
-        Raylib.SetShaderValue(blur_shader, Raylib.GetShaderLocation(blur_shader, "_Resolution"), new Vector2(cascadeResolution.x, cascadeResolution.y), ShaderUniformDataType.Vec2);
-        Raylib.SetShaderValue(blur_shader, Raylib.GetShaderLocation(blur_shader, "_BlurRadius"), cascadeBlurRadius, ShaderUniformDataType.Float);
-        Raylib.DrawTextureRec(finalGI.Texture,
-            new Rectangle(0, 0, finalGI.Texture.Width, -finalGI.Texture.Height),
-            Vector2.Zero, Color.White);
-        Raylib.EndShaderMode();
-        Raylib.EndTextureMode();
+        if (cascadeBlurRadius > 0f)
+        {
+            // ---- 5. Blur the final cascade result ----
+            Raylib.BeginTextureMode(cascadeBlurRT);
+            Raylib.ClearBackground(Color.Black);
+            Raylib.BeginShaderMode(blur_shader);
+            Raylib.SetShaderValue(blur_shader, Raylib.GetShaderLocation(blur_shader, "_Resolution"), new Vector2(cascadeResolution.x, cascadeResolution.y), ShaderUniformDataType.Vec2);
+            Raylib.SetShaderValue(blur_shader, Raylib.GetShaderLocation(blur_shader, "_BlurRadius"), cascadeBlurRadius, ShaderUniformDataType.Float);
+            Raylib.DrawTextureRec(finalGI.Texture,
+                new Rectangle(0, 0, finalGI.Texture.Width, -finalGI.Texture.Height),
+                Vector2.Zero, Color.White);
+            Raylib.EndShaderMode();
+            Raylib.EndTextureMode();
 
-        // Copy blurred cascade back to finalGI
-        Raylib.BeginTextureMode(finalGI);
-        Raylib.DrawTextureRec(cascadeBlurRT.Texture,
-            new Rectangle(0, 0, cascadeBlurRT.Texture.Width, -cascadeBlurRT.Texture.Height),
-            Vector2.Zero, Color.White);
-        Raylib.EndTextureMode();
+            // Copy blurred cascade back to finalGI
+            Raylib.BeginTextureMode(finalGI);
+            Raylib.DrawTextureRec(cascadeBlurRT.Texture,
+                new Rectangle(0, 0, cascadeBlurRT.Texture.Width, -cascadeBlurRT.Texture.Height),
+                Vector2.Zero, Color.White);
+            Raylib.EndTextureMode();
+        }
 
         // ---- 6. Merge blurred GI with scene ----
         Raylib.BeginTextureMode(tempRT);
