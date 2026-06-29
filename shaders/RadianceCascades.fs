@@ -22,6 +22,8 @@ uniform vec3 _SkyColor;
 uniform vec3 _SunColor;
 uniform float _SunAngle;
 
+uniform float _Reflectivity;
+
 const float TAU = 6.28318530718;
 
 #ifdef PACKING
@@ -80,7 +82,7 @@ vec4 SampleRadianceSDF(vec2 rayOrigin, vec2 rayDirection, vec2 rayRange) {
                 hit = vec4(emission, 1.0);
             } else {
                 vec3 baseColor = texture(_ColorTex, currentPosition).rgb;
-                hit = vec4(baseColor, 0.0);
+                hit = vec4(baseColor, _Reflectivity);
             }
             break;
         }

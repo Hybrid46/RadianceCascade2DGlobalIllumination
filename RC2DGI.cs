@@ -38,6 +38,8 @@ class RC2DGI
     static Vector3 paintColor = new Vector3(1f, 1f, 1f);
     static float skyRadiance = 1.0f;
 
+    static float reflectivity = 0.0f;
+
     static Color currentLightColor = Color.White;
 
     // Store walls as points (later drawn as squares)
@@ -205,6 +207,7 @@ class RC2DGI
         paintColor.Z = GuiSlider(new Rectangle(20, GetLineY(ref lineNumber), 200, 20), "Light Blue", paintColor.Z, 0f, 1f);
 
         cascadeBlurRadius = GuiSlider(new Rectangle(20, GetLineY(ref lineNumber), 200, 20), "Cascade Blur", cascadeBlurRadius, 0.0f, 5.0f);
+        reflectivity = GuiSlider(new Rectangle(20, GetLineY(ref lineNumber), 200, 20), "Reflectivity", reflectivity, 0f, 1f);
 
         int GetLineY(ref int line)
         {
@@ -426,6 +429,7 @@ class RC2DGI
         Raylib.SetShaderValue(GI_shader, Raylib.GetShaderLocation(GI_shader, "_SunColor"), sunColor, ShaderUniformDataType.Vec3);
         Raylib.SetShaderValue(GI_shader, Raylib.GetShaderLocation(GI_shader, "_SunAngle"), sunAngle, ShaderUniformDataType.Float);
 
+        Raylib.SetShaderValue(GI_shader, Raylib.GetShaderLocation(GI_shader, "_Reflectivity"), reflectivity, ShaderUniformDataType.Float);
     }
 
     static void DrawDebugTexture(RenderTexture2D texture, Vector2 position, int size, string label)
