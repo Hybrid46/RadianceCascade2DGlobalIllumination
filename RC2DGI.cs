@@ -13,6 +13,7 @@ class RC2DGI
     static Shader distanceField_shader;
     static Shader GI_shader;
     static Shader GIBlitter_shader;
+    static Shader blur_shader;
 
     // ---------- Render textures ----------
     static RenderTexture2D colorRT;
@@ -21,6 +22,7 @@ class RC2DGI
     static RenderTexture2D distRT;
     static RenderTexture2D giRT1, giRT2;
     static RenderTexture2D tempRT;
+    static RenderTexture2D cascadeBlurRT;
 
     // GI Config
     static int cascadeCount;
@@ -29,6 +31,7 @@ class RC2DGI
     static Vector2Int cascadeResolution;
 
     // Sun settings (default values)
+    static float cascadeBlurRadius = 1.5f;
     static float sunAngle = 0.3f;
     static Vector3 sunColor = new Vector3(1.0f, 0.9f, 0.6f);
     static Vector3 skyColor = new Vector3(0.5f, 0.6f, 0.8f);
@@ -55,6 +58,7 @@ class RC2DGI
         distanceField_shader = Raylib.LoadShader(null, "shaders/DistanceField.fs");
         GI_shader = Raylib.LoadShader(null, "shaders/RadianceCascades.fs");
         GIBlitter_shader = Raylib.LoadShader(null, "shaders/Merge.fs");
+        blur_shader = Raylib.LoadShader(null, "shaders/Blur.fs");
 
         // Setup GI config
         cascadeCount = 6;
@@ -73,6 +77,7 @@ class RC2DGI
         giRT1 = Raylib.LoadRenderTexture(cascadeResolution.x, cascadeResolution.y);
         giRT2 = Raylib.LoadRenderTexture(cascadeResolution.x, cascadeResolution.y);
         tempRT = Raylib.LoadRenderTexture(screenWidth, screenHeight);
+        cascadeBlurRT = Raylib.LoadRenderTexture(cascadeResolution.x, cascadeResolution.y);
 
         Raylib.SetTextureFilter(emissiveRT.Texture, TextureFilter.Point);
         Raylib.SetTextureFilter(colorRT.Texture, TextureFilter.Point);
@@ -81,6 +86,7 @@ class RC2DGI
         Raylib.SetTextureFilter(jumpRT2.Texture, TextureFilter.Point);
         Raylib.SetTextureFilter(tempRT.Texture, TextureFilter.Point);
 
+        Raylib.SetTextureFilter(cascadeBlurRT.Texture, TextureFilter.Bilinear);
         Raylib.SetTextureFilter(giRT1.Texture, TextureFilter.Bilinear);
         Raylib.SetTextureFilter(giRT2.Texture, TextureFilter.Bilinear);
 
@@ -155,12 +161,14 @@ class RC2DGI
         Raylib.UnloadRenderTexture(giRT1);
         Raylib.UnloadRenderTexture(giRT2);
         Raylib.UnloadRenderTexture(tempRT);
+        Raylib.UnloadRenderTexture(cascadeBlurRT);
 
         Raylib.UnloadShader(screenUV_shader);
         Raylib.UnloadShader(jumpFlood_shader);
         Raylib.UnloadShader(distanceField_shader);
         Raylib.UnloadShader(GI_shader);
         Raylib.UnloadShader(GIBlitter_shader);
+        Raylib.UnloadShader(blur_shader);
 
         Raylib.CloseWindow();
     }
@@ -184,6 +192,8 @@ class RC2DGI
         paintColor.X = GuiSlider(new Rectangle(20, GetLineY(ref lineNumber), 200, 20), "Light Red", paintColor.X, 0f, 1f);
         paintColor.Y = GuiSlider(new Rectangle(20, GetLineY(ref lineNumber), 200, 20), "Light Green", paintColor.Y, 0f, 1f);
         paintColor.Z = GuiSlider(new Rectangle(20, GetLineY(ref lineNumber), 200, 20), "Light Blue", paintColor.Z, 0f, 1f);
+
+        cascadeBlurRadius = GuiSlider(new Rectangle(20, GetLineY(ref lineNumber), 200, 20), "Cascade Blur", cascadeBlurRadius, 0.0f, 5.0f);
 
         int GetLineY(ref int line)
         {
@@ -326,7 +336,6 @@ class RC2DGI
             Raylib.BeginTextureMode(dstGI);
             Raylib.ClearBackground(Color.Black);
             Raylib.BeginShaderMode(GI_shader);
-
             SetGIShaderValues(aspect, i);
 
             Raylib.DrawTextureRec(srcGI.Texture,
@@ -338,8 +347,29 @@ class RC2DGI
             gi1IsFinal = !gi1IsFinal;
         }
 
+        // Determine the final cascade buffer
         RenderTexture2D finalGI = gi1IsFinal ? giRT1 : giRT2;
 
+        // ---- 5. Blur the final cascade result ----
+        Raylib.BeginTextureMode(cascadeBlurRT);
+        Raylib.ClearBackground(Color.Black);
+        Raylib.BeginShaderMode(blur_shader);
+        Raylib.SetShaderValue(blur_shader, Raylib.GetShaderLocation(blur_shader, "_Resolution"), new Vector2(cascadeResolution.x, cascadeResolution.y), ShaderUniformDataType.Vec2);
+        Raylib.SetShaderValue(blur_shader, Raylib.GetShaderLocation(blur_shader, "_BlurRadius"), cascadeBlurRadius, ShaderUniformDataType.Float);
+        Raylib.DrawTextureRec(finalGI.Texture,
+            new Rectangle(0, 0, finalGI.Texture.Width, -finalGI.Texture.Height),
+            Vector2.Zero, Color.White);
+        Raylib.EndShaderMode();
+        Raylib.EndTextureMode();
+
+        // Copy blurred cascade back to finalGI
+        Raylib.BeginTextureMode(finalGI);
+        Raylib.DrawTextureRec(cascadeBlurRT.Texture,
+            new Rectangle(0, 0, cascadeBlurRT.Texture.Width, -cascadeBlurRT.Texture.Height),
+            Vector2.Zero, Color.White);
+        Raylib.EndTextureMode();
+
+        // ---- 6. Merge blurred GI with scene ----
         Raylib.BeginTextureMode(tempRT);
         Raylib.BeginShaderMode(GIBlitter_shader);
         Raylib.SetShaderValueTexture(GIBlitter_shader, Raylib.GetShaderLocation(GIBlitter_shader, "_GITex"), finalGI.Texture);
@@ -355,6 +385,7 @@ class RC2DGI
             new Rectangle(0, 0, tempRT.Texture.Width, -tempRT.Texture.Height),
             Vector2.Zero, Color.White);
         Raylib.EndTextureMode();
+
     }
 
     private static void SetGIShaderValues(Vector2 aspect, int cascadeLevel)
