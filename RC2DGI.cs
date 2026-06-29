@@ -66,8 +66,13 @@ class RC2DGI
         rayRange = 2.0f;
 
         double powVal = Math.Pow(2, cascadeCount);
-        int cascadeSize = (int)Math.Ceiling(Math.Max(screenWidth, screenHeight) * renderScale / powVal) * (int)powVal;
-        cascadeResolution = new Vector2Int(cascadeSize, cascadeSize);
+        // square resolution
+        //int cascadeSize = (int)Math.Ceiling(Math.Max(screenWidth, screenHeight) * renderScale / powVal) * (int)powVal;
+        //cascadeResolution = new Vector2Int(cascadeSize, cascadeSize);
+
+        int cascadeWidth = (int)Math.Ceiling((screenWidth * renderScale) / powVal) * (int)powVal;
+        int cascadeHeight = (int)Math.Ceiling((screenHeight * renderScale) / powVal) * (int)powVal;
+        cascadeResolution = new Vector2Int(cascadeWidth, cascadeHeight);
 
         emissiveRT = Raylib.LoadRenderTexture(screenWidth, screenHeight);
         colorRT = Raylib.LoadRenderTexture(screenWidth, screenHeight);
@@ -81,7 +86,7 @@ class RC2DGI
 
         Raylib.SetTextureFilter(emissiveRT.Texture, TextureFilter.Point);
         Raylib.SetTextureFilter(colorRT.Texture, TextureFilter.Point);
-        Raylib.SetTextureFilter(distRT.Texture, TextureFilter.Point);
+        Raylib.SetTextureFilter(distRT.Texture, TextureFilter.Point); //Bilinear?
         Raylib.SetTextureFilter(jumpRT1.Texture, TextureFilter.Point);
         Raylib.SetTextureFilter(jumpRT2.Texture, TextureFilter.Point);
         Raylib.SetTextureFilter(tempRT.Texture, TextureFilter.Point);
