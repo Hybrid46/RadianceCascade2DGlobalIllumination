@@ -1,5 +1,5 @@
 #version 330 core
-//#define PACKING
+#define PACKING
 precision highp float;
 
 in vec2 fragTexCoord;
@@ -25,12 +25,8 @@ uniform float _SunAngle;
 const float TAU = 6.28318530718;
 
 #ifdef PACKING
-float unpackUNorm16(vec2 rg)
-{
-    uint x =
-        (uint(rg.r * 255.0 + 0.5) << 8) |
-         uint(rg.g * 255.0 + 0.5);
-
+float unpackUNorm16(vec2 rg) {
+    uint x = (uint(rg.r * 255.0 + 0.5) << 8) | uint(rg.g * 255.0 + 0.5);
     return float(x) / 65535.0;
 }
 #endif
@@ -59,43 +55,37 @@ vec3 SampleSkyRadiance(float a0, float a1)
 }
 
 // Ray-marching over SDF stored in _DistanceTex, color in _ColorTex
-vec4 SampleRadianceSDF(vec2 rayOrigin, vec2 rayDirection, vec2 rayRange)
-{
+vec4 SampleRadianceSDF(vec2 rayOrigin, vec2 rayDirection, vec2 rayRange) {
     float t = rayRange.x;
     vec4 hit = vec4(0.0, 0.0, 0.0, 1.0);
 
-    for (int i = 0; i < 32; ++i)
-    {
+    for (int i = 0; i < 32; ++i) {
         vec2 currentPosition = rayOrigin + t * rayDirection * _Aspect.yx;
 
-        // if outside range, break
-        if (t > rayRange.y || currentPosition.x < 0.0 || currentPosition.y < 0.0 || currentPosition.x > 1.0 || currentPosition.y > 1.0)
-        {
+        if (t > rayRange.y || currentPosition.x < 0.0 || currentPosition.y < 0.0 ||
+            currentPosition.x > 1.0 || currentPosition.y > 1.0) {
             break;
         }
+
+        // Unpack 16-bit distance from RG
         #ifdef PACKING
-            float distance = unpackUNorm16( texture(_DistanceTex, currentPosition).rg );
+            float distance = unpackUNorm16(texture(_DistanceTex, currentPosition).rg);
         #else
             float distance = texture(_DistanceTex, currentPosition).r;
         #endif
 
-        if (distance < 0.001)
-        {
+        if (distance < 0.001) {
             vec3 emission  = texture(_EmissiveTex, currentPosition).rgb;
-
             if (length(emission) > 0.0) {
-                hit = vec4(emission, 1.0); // <-- Treat emission as radiance
+                hit = vec4(emission, 1.0);
             } else {
                 vec3 baseColor = texture(_ColorTex, currentPosition).rgb;
-                float reflectivity = 0.0;
-                hit = vec4(baseColor, reflectivity); // <-- normal surface
+                hit = vec4(baseColor, 0.0);
             }
             break;
         }
-
         t += distance;
     }
-
     return hit;
 }
 
