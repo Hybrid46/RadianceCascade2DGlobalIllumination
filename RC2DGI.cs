@@ -61,13 +61,9 @@ class RC2DGI
         renderScale = 1.0f;
         rayRange = 2.0f;
 
-        //int cascadeWidth = Mathf.CeilToInt((screenWidth * renderScale) / Math.Pow(2, cascadeCount)) * (int)Math.Pow(2, cascadeCount);
-        //int cascadeHeight = Mathf.CeilToInt((screenHeight * renderScale) / Math.Pow(2, cascadeCount)) * (int)Math.Pow(2, cascadeCount);
         double powVal = Math.Pow(2, cascadeCount);
-        int cascadeWidth = (int)Math.Ceiling((screenWidth * renderScale) / powVal) * (int)powVal;
-        int cascadeHeight = (int)Math.Ceiling((screenHeight * renderScale) / powVal) * (int)powVal;
-
-        cascadeResolution = new Vector2Int(cascadeWidth, cascadeHeight);
+        int cascadeSize = (int)Math.Ceiling(Math.Max(screenWidth, screenHeight) * renderScale / powVal) * (int)powVal;
+        cascadeResolution = new Vector2Int(cascadeSize, cascadeSize);
 
         emissiveRT = Raylib.LoadRenderTexture(screenWidth, screenHeight);
         colorRT = Raylib.LoadRenderTexture(screenWidth, screenHeight);
